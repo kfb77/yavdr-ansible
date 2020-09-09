@@ -45,7 +45,12 @@
   when:
     vdr.hide_first_recording_level
 
-# TODO: set recdir, user etc. in /etc/vdr/conf.d/
+- name: set vdr recording directory
+  template:
+    src: templates/conf.d/05-vdr-recording-dir.conf.j2
+    dest: /etc/vdr/conf.d/05-vdr-recording-dir.conf
+
+# TODO: user etc. in /etc/vdr/conf.d/
 - name: apt | install additional vdr plugins
   apt:
     name: '{{ vdr_plugins | default([]) }}'
