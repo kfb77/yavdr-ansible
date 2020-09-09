@@ -1,0 +1,62 @@
+---
+# file: roles/system/tasks/main.yml
+
+- name: change hostname from {{ ansible_hostname }} to {{ system.hostname }}
+  command: hostnamectl set-hostname {{ system.hostname }}
+  notify: ['reboot required']
+  when:
+    - system.hostname is defined
+    - system.hostname != ansible_hostname
+
+# create systemd mount unit for nfs
+- name: create mount point {{ vdr.recdir }}
+  file:
+    path: '{{ vdr.recdir }}'
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0775'
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined
+
+- name: set name for systemd mount unit
+  command: systemd-escape -p --suffix=mount '{{ vdr.recdir }}'
+  register: mount_unit_name
+  changed_when: false
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined
+
+- name: create systemd mount unit "{{ mount_unit_name.stdout }}" for nfs
+  template:
+    src: templates/nfs-mount.j2
+    dest: /etc/systemd/system/{{ mount_unit_name.stdout }}
+    mode: 0644
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined
+
+- name: systemd reload
+  systemd:
+    daemon_reload: true
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined
+
+- name: enable nfs mount service {{ mount_unit_name.stdout }}
+  systemd:
+    name: '{{ mount_unit_name.stdout }}'
+    enabled: yes
+    masked: no
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined
+
+- name: mount {{ vdr.recdir }}
+  systemd:
+    state: started
+    name: '{{ mount_unit_name.stdout }}'
+  when:
+    - system.nfs_mount.server is defined
+    - system.nfs_mount.share is defined

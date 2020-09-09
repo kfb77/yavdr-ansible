@@ -20,6 +20,19 @@ generate_locales:  # see entries in /etc/locale.gen
 language_packs:
   - language-pack-de
   - language-pack-en
+
+# system properties
+#system:
+# set systen hostname
+#  hostname: vdr-raspi
+#
+# add a systemd unit to mount a NFS share from a remote server as recording directory
+# if you change the mount point and rerun the playbook you have to delete the old systemd unit in /etc/systemd/system manually
+#  nfs_mount:
+#    server: Server3.local          # remote server name or IP address
+#    share: /media/MD1/Video/VDR    # remote share path
+
+
 # properties of the user vdr and vdr-related options
 # NOTE: user name, uid and confdir must match the values set by the vdr package
 vdr:

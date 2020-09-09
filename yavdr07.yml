@@ -8,6 +8,7 @@
   environment:
     LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
+    - system
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts
     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers

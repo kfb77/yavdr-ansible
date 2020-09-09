@@ -9,6 +9,7 @@
   environment:
     LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
+    - system
     - yavdr-common
     - collect-facts              # query system facts
     - vdr

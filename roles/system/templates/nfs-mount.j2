@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+# /etc/systemd/system/{{ mount_unit_name.stdout }}
+#
+
+[Install]
+WantedBy=multi-user.target
+RequiredBy=vdr.service
+
+[Unit]
+Description=NFS mount created by yavdr ansible playbook
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+Where={{ vdr.recdir }}
+What={{ system.nfs_mount.server }}:{{ system.nfs_mount.share }}
+Type=nfs
+TimeoutSec=5
+Options=retry=10000,rw,soft,bg
