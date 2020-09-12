@@ -35,10 +35,30 @@ vdr:
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: ""  # set the desired charset, e.g. "ISO-8859-9"
 
+
+# plugin configuration
+plugin_conf_mode: 0                # 0 = merge /etc/vdr/conf.avail/*.conf with ansible plugin configuration, ansible definition wins conflict
+                                   # 1 = reset and override all configuration from /etc/vdr/conf.avail/*.conf with ansible plugin configuration
+plugins:
+#  satip:                           # name of the plugin
+#    conf_avail:                    # list of lines to add in /etc/vdr/conf.avail/satip.conf
+#      --devices: 1                 # limit to one device
+#  live:                            # name of the next plugin
+#    setup:                         # list of variables to set in /var/lib/vdr/setup.conf
+#      live.UseAuth: 0              # turn off authentication
+#      live.MarkNewRec: 0           # do not mark new recordings
+#  rpihddevice:
+#    setup:
+#      rpihddevice.AudioPort: 1     # use HDMI
+#  epg2vdr:
+#    setup:
+#      epg2vdr.DbHost: 10.1.10.146  # ip address of the epg2 server
+
 # wait for dvb devices by adapter number
 # NOTE: This only works for devices that are discoverable by udev, not userspace drivers like sundtek tuners!
 # e.g. wait_for_dvb_devices: [0, 1] to wait for /dev/dvb/adapter0 and /dev/dvb/adapter1
 wait_for_dvb_devices: []
+
 
 # this allows to set up streamdev-client - set the server, port and number of devices
 # streamdev_client_remote_ip: "192.168.0.104"

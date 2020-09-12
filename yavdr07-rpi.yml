@@ -38,6 +38,7 @@
     #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
                                  # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
+    - plugins                    # configure vdr plugins
   tags:
     - always
   handlers:

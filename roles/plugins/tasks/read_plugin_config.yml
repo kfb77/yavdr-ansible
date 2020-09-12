@@ -1,0 +1,68 @@
+---
+# file: roles/plugins/tasks/read_plugin_config.yml
+# plugin_name:      name of the plugin to write the configuration file
+# plugins:          plugin target configuration, defined by group_vars/all (see this for dokumentation) or host_vars
+# plugin_db:        input:  content of all vdr plugin configuration files
+#                   output: merge input with var plugins
+# plugin_conf_mode: 0 = merge /etc/vdr/conf.avail/*.conf with ansible plugin configuration
+#                   1 = override all configuration from /etc/vdr/conf.avail/*.conf with ansible plugin configuration
+
+
+- name: reset configuration lists for file '/etc/vdr/conf.avail/{{ plugin_name }}.conf'
+  set_fact:
+    commentList: []
+    parameterList: {}
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+
+
+- name: generate list of comments from configuration file '/etc/vdr/conf.avail/{{ plugin_name }}.conf'
+  set_fact:
+    commentList: "{{ commentList + [line] }}"
+  with_lines: cat '/etc/vdr/conf.avail/{{ plugin_name }}.conf'
+  loop_control:
+    loop_var: line
+  when:
+    - line is regex('^\s*#')
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+
+- name: add comments to plugin_db
+  vars:
+    plugin_Comment: { 'comment':'{{ commentList }}' }
+    plugin_ConfigComment: { 'conf_avail':'{{ plugin_Comment }}' }
+    plugin_NameConfigComment: "{ '{{ plugin_name }}':{{ plugin_ConfigComment }} }"
+  set_fact:
+    plugin_db: "{{ plugin_db | default({}) |  combine(plugin_NameConfigComment) }}"
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+
+
+- name: generate list of parameters from configuration file '/etc/vdr/conf.avail/{{ plugin_name }}.conf'
+  vars:
+    delimiter: "{{ '=' if line is match('--.*') else ' ' }}"
+    parameter: "{{ line.split(delimiter,1)[0] }}"
+    value: "{{ line.split(delimiter,1)[1] | default('') }}"
+  set_fact:
+    parameterList: "{{ parameterList | default({}) | combine({ parameter: value }) }}"
+  with_lines: cat '/etc/vdr/conf.avail/{{ plugin_name }}.conf'
+  loop_control:
+    loop_var: line
+  when:
+    (line is regex('^\s*\-[a-zA-Z].*') or
+     line is regex('^\s*\-\-[a-zA-Z].*')) and
+    plugins[plugin_name].conf_avail is defined and
+    plugin_conf_mode == 0
+
+- name: add parameters to plugin_db
+  vars:
+    plugin_Parameter: { 'parameter':'{{ parameterList }}' }
+    plugin_ConfigParameter: { 'conf_avail':'{{ plugin_Parameter }}' }
+    plugin_NameConfigParameter: "{ '{{ plugin_name }}':{{ plugin_ConfigParameter }} }"
+  set_fact:
+    plugin_db: "{{ plugin_db | default({}) | combine(plugin_NameConfigParameter, recursive=True) }}"
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined

@@ -1,0 +1,29 @@
+---
+# file: roles/plugins/tasks/main.yml
+
+
+- name: read all plugin configuration files from /etc/vdr/conf.avail/*.conf
+  include_tasks: read_plugin_config.yml
+  vars:
+    plugin_name: "{{ item | basename | replace('.conf', '') }}"
+  with_fileglob:
+    - "/etc/vdr/conf.avail//*.conf"
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+
+- name: write all plugin configuration files to /etc/vdr/conf.avail/*.conf
+  include_tasks: write_plugin_config.yml
+  vars:
+    plugin_name: "{{ item.key }}"
+  loop: "{{ plugins | dict2items }}"
+  when:
+    - plugins[plugin_name].conf_avail is defined
+
+- name: write all plugin setup values to /var/lib/vdr/setup.conf
+  include_tasks: write_plugin_setup.yml
+  vars:
+    plugin_name: "{{ item.key }}"
+  loop: "{{ plugins | dict2items }}"
+  when:
+    - plugins[plugin_name].setup is defined

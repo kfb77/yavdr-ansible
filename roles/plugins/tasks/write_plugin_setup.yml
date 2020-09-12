@@ -1,0 +1,26 @@
+---
+# file: roles/plugins/tasks/write_plugin_setup.yml
+#
+# plugin_name:      name of the plugin to write the configuration file
+# plugins:          plugin target configuration, defined by group_vars/all (see this for dokumentation) or host_vars, add or overrides existing setup
+
+
+- name: "ensure vdr is stopped for configuration of {{ plugin_name }}"
+  systemd:
+    name: vdr.service
+    state: stopped
+  notify: [ 'Start VDR' ]
+  when:
+    - plugins[plugin_name].setup is defined
+
+- name: "configure /var/lib/vdr/setup.conf for plugin {{ plugin_name }}"
+  lineinfile:
+    path: /var/lib/vdr/setup.conf
+    regexp: '^{{ parameter.key }}'
+    line: '{{ parameter.key }} = {{ parameter.value }}'
+  with_dict:
+    - "{{ plugins[plugin_name].setup }}"
+  loop_control:
+    loop_var: parameter
+  when:
+    - plugins[plugin_name].setup is defined

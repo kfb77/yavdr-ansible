@@ -1,0 +1,136 @@
+---
+# file: roles/plugins/tasks/write_plugin_config.yml
+#
+# plugin_name:      name of the plugin to write the configuration file
+# plugins:          plugin target configuration, defined by group_vars/all (see this for dokumentation) or host_vars
+# plugin_db:        input:  content of all vdr plugin configuration files
+#                   output: merge input with var plugins
+# plugin_conf_mode: 0 = merge /etc/vdr/conf.avail/*.conf with ansible plugin configuration
+#                   1 = override all configuration from /etc/vdr/conf.avail/*.conf with ansible plugin configuration
+
+
+- name: "ensure vdr is stopped for configuration of {{ plugin_name }}"
+  systemd:
+    name: vdr.service
+    state: stopped
+  notify: [ 'Start VDR' ]
+  when:
+    - plugins[plugin_name].conf_avail is defined
+
+
+# merge plugin target configuration with plugin configuration file
+- name: "merge configuration for {{ plugin_name }}"
+  vars:
+    newParameter: "{{ plugin_db[plugin_name].conf_avail.parameter | default({}) | combine({ parameter.key: parameter.value }, recursive=True) }}"
+    plugin_Parameter: { 'parameter':'{{ newParameter }}' }
+    plugin_ConfigParameter: { 'conf_avail':'{{ plugin_Parameter }}' }
+    plugin_NameConfigParameter: "{ '{{ plugin_name }}':{{ plugin_ConfigParameter }} }"
+  set_fact:
+    plugin_db: "{{ plugin_db | default({}) | combine(plugin_NameConfigParameter, recursive=True) }}"
+  with_dict: "{{ plugins[plugin_name].conf_avail }}"
+  when:
+    - plugins[plugin_name].conf_avail is defined
+  loop_control:
+    loop_var: parameter
+
+
+# write plugin configuration file
+- name: "delete plugin configuration file /etc/vdr/conf.avail/{{ plugin_name }}.conf"
+  ignore_errors: yes
+  file:
+    state: absent
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+  when:
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail is defined
+
+- name: "write configuration comments for {{ plugin_name }}"
+  blockinfile:
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    block: "{{ comment }}"
+    marker: ""
+    create: True
+  loop: "{{ plugin_db[plugin_name].conf_avail.comment }}"
+  when:
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail.comment is defined
+    - comment != "#*** ANSIBLE MANAGED BELOW THIS LINE ***"
+  loop_control:
+    loop_var: comment
+
+- name: Remove blank lines blockinfile put in
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    state: absent
+    regexp: '^$'
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail.comment is defined
+
+- name: "write global ansible managed warning for {{ plugin_name }}"
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    create: True
+    line: "#*** ANSIBLE MANAGED FILE ***"
+  when:
+    - plugin_conf_mode == 1
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail is defined
+
+- name: "write header for {{ plugin_name }}"
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    create: True
+    line: '[{{ plugin_name }}]'
+  when:
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail is defined
+
+- name: "write configuration not ansible managed parameters for {{ plugin_name }}"
+  vars:
+    delimiter_short: "{{ ' ' if line.value else '' }}"
+    delimiter_long: "{{ '=' if line.value else '' }}"
+    delimiter: "{{ delimiter_long if line.key is match('--.*') else delimiter_short }}"
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    create: True
+    line: '{{ line.key }}{{ delimiter }}{{ line.value }}'
+  with_dict: "{{ plugin_db[plugin_name].conf_avail.parameter }}"
+  when:
+     plugin_conf_mode == 0 and
+     plugins[plugin_name].conf_avail is defined and
+     plugins[plugin_name].conf_avail[line.key] is not defined and
+    (line.key is regex('^\s*\-[a-zA-Z].*') or
+     line.key is regex('^\s*\-\-[a-zA-Z].*'))
+  loop_control:
+    loop_var: line
+
+- name: "write parameter ansible manages warning for {{ plugin_name }}"
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    create: True
+    line: "#*** ANSIBLE MANAGED BELOW THIS LINE ***"
+  when:
+    - plugin_conf_mode == 0
+    - plugins[plugin_name].conf_avail is defined
+    - plugin_db[plugin_name].conf_avail is defined
+
+- name: "write configuration ansible mangaed parameters for {{ plugin_name }}"
+  vars:
+    delimiter_short: "{{ ' ' if line.value else '' }}"
+    delimiter_long: "{{ '=' if line.value else '' }}"
+    delimiter: "{{ delimiter_long if line.key is match('--.*') else delimiter_short }}"
+  lineinfile :
+    path: "/etc/vdr/conf.avail/{{ plugin_name }}.conf"
+    create: True
+    line: '{{ line.key }}{{ delimiter }}{{ line.value }}'
+  with_dict: "{{ plugin_db[plugin_name].conf_avail.parameter }}"
+  when:
+     plugins[plugin_name] is defined and
+     plugins[plugin_name].conf_avail is defined and
+     plugins[plugin_name].conf_avail[line.key] is defined and
+    (line.key is regex('^\s*\-[a-zA-Z].*') or
+     line.key is regex('^\s*\-\-[a-zA-Z].*'))
+  loop_control:
+    loop_var: line

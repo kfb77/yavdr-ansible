@@ -28,6 +28,7 @@
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
     - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
     - wakeup
+    - plugins                    # configure vdr plugins
   tags:
     - always
   handlers:
