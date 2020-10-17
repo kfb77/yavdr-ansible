@@ -90,6 +90,23 @@
     name: ['vdr-epg-daemon', 'vdr-plugin-epg2vdr', 'skindesigner-logos']
     state: present
 
+- name: read channels from vdr
+  shell: "epgd-ls-channelids /var/lib/vdr/channels.conf | sed '/{{ epgd_channelmap_lastchannel | default('xxxxxxx') }}/q'"
+  register: channels
+  when:
+    - epgd_channelmap is defined
+    - epgd_channelmap | bool
+
+- name: generate /etc/epgd/channelmap.conf
+  vars:
+    channel: "{{ item.split(' // ')[0] }}"
+    name: "{{ item.split(' // ')[1] }}"
+  include_tasks: channel.yml
+  with_items: "{{ channels.stdout.split('\n') }}"
+  when:
+    - epgd_channelmap is defined
+    - epgd_channelmap
+
 #- name: epgd | start
 #  systemd:
 #    name: epgd_service

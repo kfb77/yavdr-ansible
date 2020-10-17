@@ -222,3 +222,10 @@ serial_ir_device: ttyS0
 
 # Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
 # rpi_gpu_mem = 256
+
+# epgd
+# generate /etc/epgd/channelmap.conf
+# epgd_channelmap: true
+# last channel from /var/lib/vdr/channel.conf to include in channelmap.conf
+# epgd_channelmap_lastchannel: "N24 DOKU"
+

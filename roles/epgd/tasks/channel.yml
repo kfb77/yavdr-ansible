@@ -1,0 +1,38 @@
+---
+# file: roles/epgd/tasks/channelmap.yml
+
+
+- name: find ID definition of channel "{{ name }}"
+  vars:
+    searchstring: "'{{ name }}'"
+  command:
+    cmd: 'grep "{{ searchstring }}" {{ role_path }}/defaults/epgd-id-list.csv'
+  register: id_line
+  failed_when: false
+  changed_when: false
+
+- name: set channelmap.conf with EPGDATA for channel "{{ name }}"
+  vars:
+    EPGDATA_Name: "{{ id_line.stdout.split('|')[2] }}"
+    EPGDATA_ID: "{{ id_line.stdout.split('|')[3] }}"
+  lineinfile:
+    path: /etc/epgd/channelmap.conf
+    regexp: '{{ channel }}'
+    line: 'epgdata:{{ EPGDATA_ID }} = {{ channel }} // {{ name }}'
+  when: 
+    - epgd_epgdata_pin is defined
+    - id_line.stdout_lines is defined
+    - id_line.stdout_lines | length == 1
+    - EPGDATA_ID | int > 0
+
+# TODO
+# name: set channelmap-conf with TVM for channel "{{ name }}"
+#  vars:
+#    TVM_Name: "{{ id_line.stdout.split('|')[0] }}"
+#    TVM_ID: "{{ id_line.stdout.split('|')[1] }}"
+
+# name: set channelmap-conf with TVSP for channel "{{ name }}"
+#  vars:
+#    TVSP_Name: "{{ id_line.stdout.split('|')[4] }}"
+#    TVSP_ID: "{{ id_line.stdout.split('|')[5] }}"
+
